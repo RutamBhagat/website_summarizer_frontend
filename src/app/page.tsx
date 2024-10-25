@@ -61,11 +61,11 @@ export default function HomePage() {
   };
 
   return (
-    <section className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-purple-900 to-teal-800 py-12 md:py-24 lg:py-32">
+    <section className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-blue-900 to-teal-700 py-12 md:py-24 lg:py-32">
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center space-y-8 text-center">
           <div className="max-w-lg space-y-4">
-            <h1 className="bg-gradient-to-r from-indigo-300 to-pink-400 bg-clip-text text-4xl font-extrabold text-transparent sm:text-5xl xl:text-6xl">
+            <h1 className="bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-4xl font-extrabold text-transparent sm:text-5xl xl:text-6xl">
               Instant Website Insights
             </h1>
             <p className="text-zinc-100 md:text-xl">
@@ -76,14 +76,14 @@ export default function HomePage() {
           <div className="mx-auto w-full max-w-xl space-y-4">
             <form onSubmit={handleSubmit} className="flex space-x-2">
               <Input
-                className="flex-1 rounded-lg border-gray-700 bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex-1 rounded-lg border-gray-600 bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="Enter website URL (e.g., https://example.com)"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 disabled={isLoading}
               />
               <Button
-                className="transform rounded-lg bg-gradient-to-r from-blue-400 to-green-400 font-semibold text-black transition-all hover:scale-105 hover:from-blue-500 hover:to-green-500 disabled:opacity-50"
+                className="transform rounded-lg bg-gradient-to-r from-teal-400 to-cyan-500 font-semibold text-white transition-all hover:scale-105 hover:from-teal-500 hover:to-cyan-600 disabled:opacity-50"
                 type="submit"
                 disabled={isLoading || !url}
               >
@@ -97,7 +97,7 @@ export default function HomePage() {
             <p className="text-xs text-zinc-300">
               Powered by advanced AI. No sign-up required.{" "}
               <Link
-                className="text-teal-300 underline underline-offset-2 hover:text-teal-500"
+                className="text-cyan-300 underline underline-offset-2 hover:text-cyan-400"
                 href="#"
                 prefetch={false}
               >
@@ -107,7 +107,7 @@ export default function HomePage() {
           </div>
 
           {error && (
-            <Alert className="mx-auto max-w-lg transform rounded-lg border border-red-500 bg-red-800/20 text-red-200 shadow-lg transition-all hover:scale-105">
+            <Alert className="mx-auto max-w-lg transform rounded-lg border border-red-600 bg-red-800/30 text-red-300 shadow-lg transition-all hover:scale-105">
               <AlertDescription className="flex items-center space-x-2">
                 <span>🚨</span>
                 <span>{error}</span>
@@ -116,7 +116,7 @@ export default function HomePage() {
           )}
 
           {summaryData && (
-            <div className="mx-auto mt-8 w-full max-w-3xl space-y-6 rounded-lg bg-gray-900/60 p-6 text-left text-zinc-200 shadow-lg">
+            <div className="mx-auto mt-8 w-full max-w-3xl space-y-6 rounded-lg bg-gray-800/80 p-6 text-left text-gray-200 shadow-lg">
               <h2 className="text-2xl font-bold text-white">
                 {summaryData.title}
               </h2>
