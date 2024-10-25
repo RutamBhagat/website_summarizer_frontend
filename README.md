@@ -1,29 +1,24 @@
-# Create T3 App
+## Instant Website Insights
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+Transform any webpage into a concise summary with AI. Save hours of reading in seconds by simply entering a URL and letting advanced language models distill key insights for you. **No sign-up required** and instant results!
 
-## What's next? How do I make an app with this?
+**Backend:** [Website Summarizer API](https://website-summarizer-iorx.onrender.com/docs)  
+**Frontend:** [Instant Website Insights UI](https://website-summarizer-frontend.vercel.app)
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+---
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## Demo Video
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+[Placeholder for Demo Video]
 
-## Learn More
+---
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+## How It's Made
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+**Tech used:** HTML, CSS, JavaScript, Python, BeautifulSoup, OpenAI API
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+The project architecture is built around modular components for scalability and efficiency:
 
-## How do I deploy this?
-
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+- **Web Scraping & Parsing:** We use BeautifulSoup to handle raw HTML parsing, extracting only the relevant content while removing unnecessary elements like ads, navigation bars, and scripts.
+- **AI Summarization:** Powered by OpenAI's GPT-4, the system processes cleaned HTML to deliver concise summaries, with prompt engineering ensuring consistent and high-quality outputs.
+- **Frontend & Backend:** The frontend is a simple Next.js web interface that allows users to input URLs and see instant results, while the FASTAPI backend API handles web scraping, data cleaning, and OpenAI interactions. The frontend is hosted on Vercel, and the backend on Render.
