@@ -4,8 +4,8 @@ import { Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { Alert, AlertDescription } from "~/components/ui/alert";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface SummaryResponse {
   url: string;
@@ -19,12 +19,10 @@ interface SummaryResponse {
 export default function HomePage() {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setIsLoading(true);
 
     try {
@@ -52,7 +50,7 @@ export default function HomePage() {
       const data = (await response.json()) as SummaryResponse;
       setSummaryData(data);
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof Error ? err.message : "An unexpected error occurred",
       );
     } finally {
@@ -76,7 +74,7 @@ export default function HomePage() {
           <div className="mx-auto w-full max-w-xl space-y-4">
             <form onSubmit={handleSubmit} className="flex space-x-2">
               <Input
-                className="flex-1 rounded-lg border-gray-600 bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="flex-1 rounded-lg border-gray-300 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="Enter website URL (e.g., https://example.com)"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -98,22 +96,13 @@ export default function HomePage() {
               Powered by advanced AI. No sign-up required.{" "}
               <Link
                 className="text-cyan-300 underline underline-offset-2 hover:text-cyan-400"
-                href="#"
+                href="https://github.com/RutamBhagat/website_summarizer"
                 prefetch={false}
               >
                 Learn how it works
               </Link>
             </p>
           </div>
-
-          {error && (
-            <Alert className="mx-auto max-w-lg transform rounded-lg border border-red-600 bg-red-800/30 text-red-300 shadow-lg transition-all hover:scale-105">
-              <AlertDescription className="flex items-center space-x-2">
-                <span>🚨</span>
-                <span>{error}</span>
-              </AlertDescription>
-            </Alert>
-          )}
 
           {summaryData && (
             <div className="mx-auto mt-8 w-full max-w-3xl space-y-6 rounded-lg bg-gray-800/80 p-6 text-left text-gray-200 shadow-lg">
