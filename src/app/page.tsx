@@ -44,7 +44,10 @@ export default function HomePage() {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch summary. Please try again.");
+        const errorData = (await response.json()) as { detail?: string };
+        throw new Error(
+          errorData.detail ?? "Failed to fetch summary. Please try again.",
+        );
       }
 
       const data = (await response.json()) as SummaryResponse;
