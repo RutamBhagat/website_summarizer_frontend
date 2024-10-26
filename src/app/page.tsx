@@ -40,12 +40,15 @@ export default function HomePage() {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
+        const chunk = decoder.decode(value, { stream: true });
         accumulatedContent += chunk;
-        setStreamingContent(accumulatedContent);
+        setStreamingContent(accumulatedContent); // Update the state with the accumulated content
       }
     } catch (error) {
-      toast.error(`Error during streaming response ${JSON.stringify(error)}`);
+      console.error("Error during streaming response:", JSON.stringify(error));
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      toast.error(`Error during streaming response: ${error.message}`);
     } finally {
       reader.releaseLock();
     }
