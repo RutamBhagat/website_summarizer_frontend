@@ -8,55 +8,62 @@ import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
 import { Button } from "~/components/ui/button";
 
-// Approach without React Query - Simpler and more direct
 export default function HomePage() {
   const [url, setUrl] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [isStreaming, setIsStreaming] = useState(true);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
 
   interface ErrorData {
     detail?: string;
   }
 
+  // Define the structure of the non-streaming response data
+  interface BrochureResponse {
+    content: string;
+  }
+
   const handleStream = async () => {
     setIsLoading(true);
     setContent("");
-    setError("");
 
     try {
-      const response: Response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/public/brochure/stream`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, company_name: companyName }),
-        },
-      );
+      const endpoint = isStreaming
+        ? `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/brochure/stream`
+        : `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/brochure`;
+
+      const response: Response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, company_name: companyName }),
+      });
 
       if (!response.ok) {
         const errorData: ErrorData = (await response.json()) as ErrorData;
         throw new Error(errorData.detail ?? "Failed to generate brochure");
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No reader available");
+      if (isStreaming) {
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No reader available");
 
-      const decoder = new TextDecoder();
+        const decoder = new TextDecoder();
 
-      // Process the stream
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        // Decode and append new chunk
-        const chunk = decoder.decode(value, { stream: true });
-        setContent((prev) => prev + chunk);
+          const chunk = decoder.decode(value, { stream: true });
+          setContent((prev) => prev + chunk);
+        }
+      } else {
+        // Parse the JSON response with the defined type
+        const data: BrochureResponse =
+          (await response.json()) as BrochureResponse;
+        setContent(data.content);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
       toast.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
@@ -148,16 +155,12 @@ export default function HomePage() {
           </div>
 
           {/* Content Display */}
-          {error ? (
-            <div className="text-red-400">{error}</div>
-          ) : (
-            content && (
-              <div className="mx-auto mt-8 w-full max-w-3xl space-y-6 rounded-lg bg-gray-800/80 p-6 text-left text-gray-200 shadow-lg">
-                <div className="prose prose-invert max-w-none">
-                  <ReactMarkdown>{content}</ReactMarkdown>
-                </div>
+          {content && (
+            <div className="mx-auto mt-8 w-full max-w-3xl space-y-6 rounded-lg bg-gray-800/80 p-6 text-left text-gray-200 shadow-lg">
+              <div className="prose prose-invert max-w-none">
+                <ReactMarkdown>{content}</ReactMarkdown>
               </div>
-            )
+            </div>
           )}
         </div>
       </div>
