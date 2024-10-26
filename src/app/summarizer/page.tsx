@@ -1,64 +1,48 @@
 "use client";
+
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
-import { toast } from "sonner";
-
-interface SummaryResponse {
-  url: string;
-  title: string;
-  summary: string;
-  created_at: string;
-  id: string;
-  owner_id: string;
-}
+import { useQuery } from "@tanstack/react-query";
+import {
+  apiClient,
+  endpoints,
+  validateUrl,
+  type SummaryResponse,
+} from "~/lib/api-client";
 
 export default function SummarizerPage() {
   const [url, setUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+  const {
+    data: summaryData,
+    refetch,
+    isLoading,
+  } = useQuery({
+    queryKey: ["summary", url],
+    queryFn: async () => {
+      if (!validateUrl(url)) {
         throw new Error(
           "Please enter a valid URL starting with http:// or https://",
         );
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/websites/public/summarize`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url }),
-        },
+      const { data } = await apiClient.post<SummaryResponse>(
+        endpoints.summarize,
+        { url },
       );
+      return data;
+    },
+    enabled: false,
+    retry: 1,
+  });
 
-      if (!response.ok) {
-        const errorData = (await response.json()) as { detail?: string };
-        throw new Error(
-          errorData.detail ?? "Failed to fetch summary. Please try again.",
-        );
-      }
-
-      const data = (await response.json()) as SummaryResponse;
-      setSummaryData(data);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "An unexpected error occurred",
-      );
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void refetch();
   };
 
   return (

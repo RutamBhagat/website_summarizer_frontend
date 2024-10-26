@@ -11,15 +11,12 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense } from "react";
-
-interface BrochureResponse {
-  id: string;
-  url: string;
-  company_name: string;
-  content: string;
-  created_at: string;
-  owner_id: string | null;
-}
+import {
+  apiClient,
+  endpoints,
+  validateUrl,
+  type BrochureResponse,
+} from "~/lib/api-client";
 
 // Custom hook for handling brochure streaming
 const useBrochureStream = (
@@ -37,23 +34,24 @@ const useBrochureStream = (
       }
 
       const endpoint = isStreaming
-        ? `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/brochure/stream`
-        : `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/brochure`;
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url, company_name: companyName }),
-      });
-
-      if (!response.ok) {
-        const errorData = (await response.json()) as { detail?: string };
-        throw new Error(errorData.detail ?? "Failed to generate brochure");
-      }
+        ? endpoints.brochureStream
+        : endpoints.brochure;
 
       if (isStreaming) {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}${endpoint}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, company_name: companyName }),
+          },
+        );
+
+        if (!response.ok) {
+          const errorData = (await response.json()) as { detail?: string };
+          throw new Error(errorData.detail ?? "Failed to generate brochure");
+        }
+
         const reader = response.body?.getReader();
         if (!reader) throw new Error("No reader available");
 
@@ -68,7 +66,6 @@ const useBrochureStream = (
             const chunk = decoder.decode(value, { stream: true });
             content += chunk;
 
-            // Update the query cache with the latest content
             queryClient.setQueryData(
               ["brochure", url, companyName, isStreaming],
               content,
@@ -82,7 +79,11 @@ const useBrochureStream = (
         }
       }
 
-      return response.json() as Promise<BrochureResponse>;
+      const { data } = await apiClient.post<BrochureResponse>(endpoint, {
+        url,
+        company_name: companyName,
+      });
+      return data;
     },
     enabled: false,
     retry: 1,
@@ -141,7 +142,7 @@ export default function HomePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    if (!validateUrl(url)) {
       toast.error("Please enter a valid URL starting with http:// or https://");
       return;
     }
