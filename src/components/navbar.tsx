@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 
 const links = [
   { href: "/", label: "Brochure" },
-  { href: "/summarizer", label: "Summarizer" },
+  { href: "/summary", label: "Summary" },
 ];
 
 export function Navbar() {
