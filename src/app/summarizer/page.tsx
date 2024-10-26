@@ -66,7 +66,7 @@ export default function SummarizerPage() {
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center space-y-8 text-center">
           <div className="max-w-lg space-y-4">
-            <h1 className="bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-4xl font-extrabold text-transparent sm:text-5xl xl:text-6xl">
+            <h1 className="bg-gradient-to-r from-cyan-200 to-blue-400 bg-clip-text text-4xl font-extrabold text-transparent sm:text-5xl xl:text-6xl">
               Instant Website Insights
             </h1>
             <p className="text-zinc-100 md:text-xl">

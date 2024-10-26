@@ -17,7 +17,7 @@ const links = [
 
 export function Navbar() {
   return (
-    <header className="flex h-20 w-full shrink-0 items-center px-4 md:px-6">
+    <main className="flex h-20 w-full shrink-0 items-center px-4 md:px-6">
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="outline" size="icon" className="lg:hidden">
@@ -62,6 +62,6 @@ export function Navbar() {
         ))}
         {/* <div className="">temp</div> */}
       </nav>
-    </header>
+    </main>
   );
 }
