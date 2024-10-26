@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -8,6 +9,8 @@ import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Suspense } from "react";
 
 interface BrochureResponse {
   id: string;
@@ -18,57 +21,19 @@ interface BrochureResponse {
   owner_id: string | null;
 }
 
-export default function HomePage() {
-  const [url, setUrl] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(true);
-  const [brochureData, setBrochureData] = useState<BrochureResponse | null>(
-    null,
-  );
-  const [streamingContent, setStreamingContent] = useState<string>("");
+// Custom hook for handling brochure streaming
+const useBrochureStream = (
+  url: string,
+  companyName: string,
+  isStreaming: boolean,
+) => {
+  const queryClient = useQueryClient();
 
-  const handleStreamingResponse = async (response: Response) => {
-    const reader = response.body?.getReader();
-    if (!reader) return;
-
-    const decoder = new TextDecoder();
-    let accumulatedContent = "";
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        accumulatedContent += chunk;
-        setStreamingContent(accumulatedContent); // Update the state with the accumulated content
-      }
-    } catch (error) {
-      console.error("Error during streaming response:", JSON.stringify(error));
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      toast.error(`Error during streaming response: ${error.message}`);
-    } finally {
-      reader.releaseLock();
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setStreamingContent("");
-    setBrochureData(null);
-
-    try {
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        throw new Error(
-          "Please enter a valid URL starting with http:// or https://",
-        );
-      }
-
-      if (!companyName.trim()) {
-        throw new Error("Please enter a company name");
+  return useQuery({
+    queryKey: ["brochure", url, companyName, isStreaming],
+    queryFn: async () => {
+      if (!url || !companyName) {
+        throw new Error("URL and company name are required");
       }
 
       const endpoint = isStreaming
@@ -85,24 +50,108 @@ export default function HomePage() {
 
       if (!response.ok) {
         const errorData = (await response.json()) as { detail?: string };
-        throw new Error(
-          errorData.detail ?? "Failed to generate brochure. Please try again.",
-        );
+        throw new Error(errorData.detail ?? "Failed to generate brochure");
       }
 
       if (isStreaming) {
-        await handleStreamingResponse(response);
-      } else {
-        const data = (await response.json()) as BrochureResponse;
-        setBrochureData(data);
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No reader available");
+
+        const decoder = new TextDecoder();
+        let content = "";
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            content += chunk;
+
+            // Update the query cache with the latest content
+            queryClient.setQueryData(
+              ["brochure", url, companyName, isStreaming],
+              content,
+            );
+          }
+          return content;
+        } catch (error) {
+          throw error;
+        } finally {
+          reader.releaseLock();
+        }
       }
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "An unexpected error occurred",
-      );
-    } finally {
-      setIsLoading(false);
+
+      return response.json() as Promise<BrochureResponse>;
+    },
+    enabled: false,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    gcTime: 0,
+  });
+};
+
+interface BrochureContentProps {
+  data: string | BrochureResponse | undefined | null;
+  isStreaming: boolean;
+}
+
+const BrochureContent: React.FC<BrochureContentProps> = ({
+  data,
+  isStreaming,
+}) => {
+  if (!data) return null;
+
+  if (isStreaming && typeof data === "string") {
+    return (
+      <div className="prose prose-invert max-w-none">
+        <ReactMarkdown>{data}</ReactMarkdown>
+      </div>
+    );
+  }
+
+  if (!isStreaming && typeof data !== "string") {
+    return (
+      <>
+        <h2 className="text-2xl font-bold text-white">{data.company_name}</h2>
+        <div className="prose prose-invert max-w-none">
+          <ReactMarkdown>{data.content}</ReactMarkdown>
+        </div>
+        <p className="text-sm text-zinc-400">
+          Generated on: {new Date(data.created_at).toLocaleDateString()}
+        </p>
+      </>
+    );
+  }
+
+  return null;
+};
+
+export default function HomePage() {
+  const [url, setUrl] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [isStreaming, setIsStreaming] = useState(true);
+
+  const { data, isLoading, error, refetch } = useBrochureStream(
+    url,
+    companyName,
+    isStreaming,
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      toast.error("Please enter a valid URL starting with http:// or https://");
+      return;
     }
+
+    if (!companyName.trim()) {
+      toast.error("Please enter a company name");
+      return;
+    }
+
+    void refetch();
   };
 
   return (
@@ -173,27 +222,16 @@ export default function HomePage() {
             </p>
           </div>
 
-          {(brochureData ?? streamingContent) && (
-            <div className="mx-auto mt-8 w-full max-w-3xl space-y-6 rounded-lg bg-gray-800/80 p-6 text-left text-gray-200 shadow-lg">
-              {brochureData ? (
-                <>
-                  <h2 className="text-2xl font-bold text-white">
-                    {brochureData.company_name}
-                  </h2>
-                  <div className="prose prose-invert max-w-none">
-                    <ReactMarkdown>{brochureData.content}</ReactMarkdown>
-                  </div>
-                  <p className="text-sm text-zinc-400">
-                    Generated on:{" "}
-                    {new Date(brochureData.created_at).toLocaleDateString()}
-                  </p>
-                </>
-              ) : (
-                <div className="prose prose-invert max-w-none">
-                  <ReactMarkdown>{streamingContent}</ReactMarkdown>
+          {error instanceof Error ? (
+            <div className="text-red-400">{error.message}</div>
+          ) : (
+            <Suspense fallback={<div>Loading content...</div>}>
+              {data && (
+                <div className="mx-auto mt-8 w-full max-w-3xl space-y-6 rounded-lg bg-gray-800/80 p-6 text-left text-gray-200 shadow-lg">
+                  <BrochureContent data={data} isStreaming={isStreaming} />
                 </div>
               )}
-            </div>
+            </Suspense>
           )}
         </div>
       </div>
