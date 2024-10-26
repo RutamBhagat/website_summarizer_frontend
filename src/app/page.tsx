@@ -22,7 +22,7 @@ export default function HomePage() {
   const [url, setUrl] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(true);
   const [brochureData, setBrochureData] = useState<BrochureResponse | null>(
     null,
   );
@@ -45,7 +45,7 @@ export default function HomePage() {
         setStreamingContent(accumulatedContent);
       }
     } catch (error) {
-      toast.error("Error during streaming response");
+      toast.error(`Error during streaming response ${JSON.stringify(error)}`);
     } finally {
       reader.releaseLock();
     }
@@ -69,8 +69,8 @@ export default function HomePage() {
       }
 
       const endpoint = isStreaming
-        ? `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/public/brochure/stream`
-        : `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/public/brochure`;
+        ? `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/brochure/stream`
+        : `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/brochure`;
 
       const response = await fetch(endpoint, {
         method: "POST",
