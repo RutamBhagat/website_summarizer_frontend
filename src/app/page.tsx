@@ -8,6 +8,24 @@ import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
 import { Button } from "~/components/ui/button";
 
+// Define strict types for responses
+interface ErrorData {
+  detail?: string;
+}
+
+interface BrochureResponse {
+  content: string;
+}
+
+type StreamChunk =
+  | {
+      type: "content";
+      text: string;
+    }
+  | {
+      type: "done";
+    };
+
 export default function HomePage() {
   const [url, setUrl] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -15,12 +33,31 @@ export default function HomePage() {
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  interface ErrorData {
-    detail?: string;
+  // Type Guards
+  function isErrorData(data: unknown): data is ErrorData {
+    return (
+      typeof data === "object" &&
+      data !== null &&
+      "detail" in data &&
+      typeof (data as ErrorData).detail === "string"
+    );
   }
 
-  interface BrochureResponse {
-    content: string;
+  function isBrochureResponse(data: unknown): data is BrochureResponse {
+    return (
+      typeof data === "object" &&
+      data !== null &&
+      "content" in data &&
+      typeof (data as BrochureResponse).content === "string"
+    );
+  }
+
+  // Parse streaming chunks with type safety
+  function parseStreamChunk(data: string): StreamChunk {
+    if (data === "[DONE]") {
+      return { type: "done" };
+    }
+    return { type: "content", text: data };
   }
 
   const handleStream = async () => {
@@ -52,34 +89,37 @@ export default function HomePage() {
         if (!reader) throw new Error("No reader available");
 
         const decoder = new TextDecoder();
-        let buffer = ""; // Buffer for incomplete chunks
+        let buffer = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
 
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6).trim();
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const data = line.slice(6).trim();
+                const chunk = parseStreamChunk(data);
 
-              if (data === "[DONE]") {
-                break;
-              }
-
-              try {
-                const parsedChunk: unknown = JSON.parse(data);
-                if (isBrochureContent(parsedChunk)) {
-                  setContent((prev) => prev + (parsedChunk.content || ""));
+                switch (chunk.type) {
+                  case "content":
+                    setContent((prev) => prev + chunk.text);
+                    break;
+                  case "done":
+                    return;
                 }
-              } catch (e) {
-                console.warn("Failed to parse chunk:", e);
               }
             }
           }
+        } catch (err) {
+          toast.error(
+            "Error processing stream: " +
+              (err instanceof Error ? err.message : String(err)),
+          );
         }
       } else {
         const data: unknown = await response.json();
@@ -95,34 +135,6 @@ export default function HomePage() {
       setIsLoading(false);
     }
   };
-
-  // Type Guards
-  function isErrorData(data: unknown): data is ErrorData {
-    return (
-      typeof data === "object" &&
-      data !== null &&
-      "detail" in data &&
-      typeof (data as ErrorData).detail === "string"
-    );
-  }
-
-  function isBrochureContent(data: unknown): data is { content: string } {
-    return (
-      typeof data === "object" &&
-      data !== null &&
-      "content" in data &&
-      typeof (data as { content: string }).content === "string"
-    );
-  }
-
-  function isBrochureResponse(data: unknown): data is BrochureResponse {
-    return (
-      typeof data === "object" &&
-      data !== null &&
-      "content" in data &&
-      typeof (data as BrochureResponse).content === "string"
-    );
-  }
 
   const validateUrl = (url: string) => {
     try {
