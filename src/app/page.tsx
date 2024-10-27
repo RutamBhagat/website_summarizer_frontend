@@ -8,23 +8,14 @@ import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
 import { Button } from "~/components/ui/button";
 
-// Define strict types for responses
-interface ErrorData {
-  detail?: string;
-}
-
-interface BrochureResponse {
+// Minimal type definitions
+type BrochureResponse = {
   content: string;
-}
+};
 
-type StreamChunk =
-  | {
-      type: "content";
-      text: string;
-    }
-  | {
-      type: "done";
-    };
+type APIError = {
+  detail: string;
+};
 
 export default function HomePage() {
   const [url, setUrl] = useState("");
@@ -33,122 +24,67 @@ export default function HomePage() {
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Type Guards
-  function isErrorData(data: unknown): data is ErrorData {
-    return (
-      typeof data === "object" &&
-      data !== null &&
-      "detail" in data &&
-      typeof (data as ErrorData).detail === "string"
-    );
-  }
-
-  function isBrochureResponse(data: unknown): data is BrochureResponse {
-    return (
-      typeof data === "object" &&
-      data !== null &&
-      "content" in data &&
-      typeof (data as BrochureResponse).content === "string"
-    );
-  }
-
-  // Parse streaming chunks with type safety
-  function parseStreamChunk(data: string): StreamChunk {
-    if (data === "[DONE]") {
-      return { type: "done" };
-    }
-    return { type: "content", text: data };
-  }
-
-  const handleStream = async () => {
+  const handleBrochureGeneration = async () => {
     setIsLoading(true);
     setContent("");
 
-    try {
-      const endpoint = isStreaming
-        ? `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/stream`
-        : `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public`;
+    const endpoint = isStreaming
+      ? `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/stream`
+      : `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public`;
 
+    try {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, company_name: companyName }),
+        body: JSON.stringify({
+          url,
+          company_name: companyName,
+        }),
       });
 
       if (!response.ok) {
-        const errorData: unknown = await response.json();
-        if (isErrorData(errorData)) {
-          throw new Error(errorData.detail ?? "Failed to generate brochure");
-        } else {
-          throw new Error("Failed to generate brochure");
-        }
+        const error = (await response.json()) as APIError;
+        throw new Error(error.detail || "Failed to generate brochure");
       }
 
       if (isStreaming) {
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error("No reader available");
+        if (!response.body) {
+          throw new Error("Response body is null");
+        }
 
+        const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = "";
 
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
 
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() ?? "";
-
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const data = line.slice(6).trim();
-                const chunk = parseStreamChunk(data);
-
-                switch (chunk.type) {
-                  case "content":
-                    setContent((prev) => prev + chunk.text);
-                    break;
-                  case "done":
-                    return;
-                }
-              }
-            }
-          }
-        } catch (err) {
-          toast.error(
-            "Error processing stream: " +
-              (err instanceof Error ? err.message : String(err)),
-          );
+          const chunk = decoder.decode(value);
+          // Use functional update to correctly handle state updates with streaming
+          setContent((prevContent) => prevContent + chunk);
         }
       } else {
-        const data: unknown = await response.json();
-        if (isBrochureResponse(data)) {
-          setContent(data.content);
-        } else {
-          throw new Error("Unexpected response format");
-        }
+        const data = (await response.json()) as BrochureResponse;
+        setContent(data.content);
       }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "An error occurred");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const validateUrl = (url: string) => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateUrl(url)) {
+    if (!url.trim()) {
+      toast.error("Please enter a URL");
+      return;
+    }
+
+    try {
+      new URL(url);
+    } catch {
       toast.error("Please enter a valid URL starting with http:// or https://");
       return;
     }
@@ -158,7 +94,7 @@ export default function HomePage() {
       return;
     }
 
-    void handleStream();
+    void handleBrochureGeneration();
   };
 
   return (
