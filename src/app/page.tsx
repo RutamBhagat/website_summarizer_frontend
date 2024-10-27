@@ -48,6 +48,9 @@ export default function HomePage() {
       }
 
       if (isStreaming) {
+        toast.loading(
+          "The streaming backend endpoint is artificially throttled for demonstrating streaming on the frontend",
+        );
         // Get the readable stream from the response
         const stream = response.body;
         if (!stream) {
