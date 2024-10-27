@@ -48,20 +48,33 @@ export default function HomePage() {
       }
 
       if (isStreaming) {
-        if (!response.body) {
+        // Get the readable stream from the response
+        const stream = response.body;
+        if (!stream) {
           throw new Error("Response body is null");
         }
 
-        const reader = response.body.getReader();
+        // Create a reader from the stream
+        const reader = stream.getReader();
         const decoder = new TextDecoder();
 
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
 
-          const chunk = decoder.decode(value);
-          // Use functional update to correctly handle state updates with streaming
-          setContent((prevContent) => prevContent + chunk);
+            if (done) {
+              break;
+            }
+
+            // Decode the chunk and update state immediately
+            const text = decoder.decode(value);
+            setContent((prev) => prev + text);
+
+            // Force browser to render
+            await new Promise((resolve) => setTimeout(resolve, 1));
+          }
+        } finally {
+          reader.releaseLock();
         }
       } else {
         const data = (await response.json()) as BrochureResponse;
