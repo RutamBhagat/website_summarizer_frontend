@@ -11,7 +11,7 @@ import { Button } from "~/components/ui/button";
 export default function HomePage() {
   const [url, setUrl] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(true);
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,7 +19,6 @@ export default function HomePage() {
     detail?: string;
   }
 
-  // Define the structure of the non-streaming response data
   interface BrochureResponse {
     content: string;
   }
@@ -30,18 +29,22 @@ export default function HomePage() {
 
     try {
       const endpoint = isStreaming
-        ? `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/brochure/stream`
-        : `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/brochure`;
+        ? `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public/stream`
+        : `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/brochures/public`;
 
-      const response: Response = await fetch(endpoint, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, company_name: companyName }),
       });
 
       if (!response.ok) {
-        const errorData: ErrorData = (await response.json()) as ErrorData;
-        throw new Error(errorData.detail ?? "Failed to generate brochure");
+        const errorData: unknown = await response.json();
+        if (isErrorData(errorData)) {
+          throw new Error(errorData.detail ?? "Failed to generate brochure");
+        } else {
+          throw new Error("Failed to generate brochure");
+        }
       }
 
       if (isStreaming) {
@@ -49,19 +52,42 @@ export default function HomePage() {
         if (!reader) throw new Error("No reader available");
 
         const decoder = new TextDecoder();
+        let buffer = ""; // Buffer for incomplete chunks
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
-          setContent((prev) => prev + chunk);
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6).trim();
+
+              if (data === "[DONE]") {
+                break;
+              }
+
+              try {
+                const parsedChunk: unknown = JSON.parse(data);
+                if (isBrochureContent(parsedChunk)) {
+                  setContent((prev) => prev + (parsedChunk.content || ""));
+                }
+              } catch (e) {
+                console.warn("Failed to parse chunk:", e);
+              }
+            }
+          }
         }
       } else {
-        // Parse the JSON response with the defined type
-        const data: BrochureResponse =
-          (await response.json()) as BrochureResponse;
-        setContent(data.content);
+        const data: unknown = await response.json();
+        if (isBrochureResponse(data)) {
+          setContent(data.content);
+        } else {
+          throw new Error("Unexpected response format");
+        }
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An error occurred");
@@ -69,6 +95,34 @@ export default function HomePage() {
       setIsLoading(false);
     }
   };
+
+  // Type Guards
+  function isErrorData(data: unknown): data is ErrorData {
+    return (
+      typeof data === "object" &&
+      data !== null &&
+      "detail" in data &&
+      typeof (data as ErrorData).detail === "string"
+    );
+  }
+
+  function isBrochureContent(data: unknown): data is { content: string } {
+    return (
+      typeof data === "object" &&
+      data !== null &&
+      "content" in data &&
+      typeof (data as { content: string }).content === "string"
+    );
+  }
+
+  function isBrochureResponse(data: unknown): data is BrochureResponse {
+    return (
+      typeof data === "object" &&
+      data !== null &&
+      "content" in data &&
+      typeof (data as BrochureResponse).content === "string"
+    );
+  }
 
   const validateUrl = (url: string) => {
     try {
