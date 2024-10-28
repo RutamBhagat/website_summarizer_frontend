@@ -46,21 +46,22 @@ export default function SummarizerPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) {
-      toast.error("Please enter a URL", { duration: 5000, closeButton: true });
+      toast.dismiss();
+      toast.error("Please enter a URL", { duration: 5000 });
       return;
     }
     try {
       new URL(url);
     } catch {
+      toast.dismiss();
       toast.error("Invalid URL. Please use http:// or https://", {
         duration: 5000,
-        closeButton: true,
       });
       return;
     }
+    toast.dismiss();
     toast.loading("Generating summary...", {
-      duration: Infinity,
-      closeButton: true,
+      duration: 5000,
     });
     void refetch();
   };
@@ -70,13 +71,11 @@ export default function SummarizerPage() {
       toast.dismiss();
       toast.success("Summary generated successfully!", {
         duration: 5000,
-        closeButton: true,
       });
     } else if (isError && error) {
       toast.dismiss();
       toast.error(error.message || "An error occurred", {
         duration: 5000,
-        closeButton: true,
       });
     }
   }, [isSuccess, isError, error]);

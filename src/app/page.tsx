@@ -23,7 +23,6 @@ export default function HomePage() {
   const [isStreaming, setIsStreaming] = useState(true);
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingToastId, setLoadingToastId] = useState<string | null>(null);
 
   const handleBrochureGeneration = async () => {
     setIsLoading(true);
@@ -49,11 +48,10 @@ export default function HomePage() {
       }
 
       if (isStreaming) {
-        const id = toast.loading(
-          "Loading content... This might take a moment.",
-          { closeButton: true },
-        );
-        setLoadingToastId(id as string);
+        toast.dismiss();
+        toast.loading("Streaming content... This might take a moment.", {
+          duration: 5000,
+        });
 
         const stream = response.body;
         if (!stream) {
@@ -81,17 +79,14 @@ export default function HomePage() {
         setContent(data.content);
       }
     } catch (error) {
+      toast.dismiss();
       toast.error(
         error instanceof Error ? error.message : "An error occurred",
         {
-          closeButton: true,
+          duration: 5000,
         },
       );
     } finally {
-      if (loadingToastId) {
-        toast.dismiss(loadingToastId);
-        setLoadingToastId(null);
-      }
       setIsLoading(false);
     }
   };
@@ -100,24 +95,29 @@ export default function HomePage() {
     e.preventDefault();
 
     if (!url.trim()) {
-      toast.error("Please enter a URL", { closeButton: true });
+      toast.dismiss();
+      toast.error("Please enter a URL", { duration: 5000 });
       return;
     }
 
     try {
       new URL(url);
     } catch {
+      toast.dismiss();
       toast.error(
         "Please enter a valid URL starting with http:// or https://",
         {
-          closeButton: true,
+          duration: 5000,
         },
       );
       return;
     }
 
     if (!companyName.trim()) {
-      toast.error("Please enter a company name", { closeButton: true });
+      toast.dismiss();
+      toast.error("Please enter a company name", {
+        duration: 5000,
+      });
       return;
     }
 
