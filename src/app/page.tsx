@@ -8,7 +8,6 @@ import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
 import { Button } from "~/components/ui/button";
 
-// Minimal type definitions
 type BrochureResponse = {
   content: string;
 };
@@ -48,8 +47,8 @@ export default function HomePage() {
       }
 
       if (isStreaming) {
-        toast.dismiss();
-        toast.loading("Streaming content... This might take a moment.", {
+        // Show initial toast
+        const toastId = toast.loading("Starting content generation...", {
           duration: 5000,
         });
 
@@ -60,6 +59,7 @@ export default function HomePage() {
 
         const reader = stream.getReader();
         const decoder = new TextDecoder();
+        let progressCount = 0;
 
         try {
           while (true) {
@@ -69,17 +69,34 @@ export default function HomePage() {
             }
             const text = decoder.decode(value);
             setContent((prev) => prev + text);
+
+            // Update toast message periodically
+            progressCount++;
+            if (progressCount % 10 === 0) {
+              toast.loading("Still generating content...", {
+                id: toastId,
+                duration: 5000,
+              });
+            }
+
             await new Promise((resolve) => setTimeout(resolve, 1));
           }
+          // Success toast when streaming is complete
+          toast.success("Content generation complete!", {
+            id: toastId,
+            duration: 3000,
+          });
         } finally {
           reader.releaseLock();
         }
       } else {
         const data = (await response.json()) as BrochureResponse;
         setContent(data.content);
+        toast.success("Content generated successfully!", {
+          duration: 3000,
+        });
       }
     } catch (error) {
-      toast.dismiss();
       toast.error(
         error instanceof Error ? error.message : "An error occurred",
         {
@@ -95,7 +112,6 @@ export default function HomePage() {
     e.preventDefault();
 
     if (!url.trim()) {
-      toast.dismiss();
       toast.error("Please enter a URL", { duration: 5000 });
       return;
     }
@@ -103,7 +119,6 @@ export default function HomePage() {
     try {
       new URL(url);
     } catch {
-      toast.dismiss();
       toast.error(
         "Please enter a valid URL starting with http:// or https://",
         {
@@ -114,7 +129,6 @@ export default function HomePage() {
     }
 
     if (!companyName.trim()) {
-      toast.dismiss();
       toast.error("Please enter a company name", {
         duration: 5000,
       });
