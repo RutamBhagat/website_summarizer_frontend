@@ -23,6 +23,7 @@ export default function HomePage() {
   const [isStreaming, setIsStreaming] = useState(true);
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingToastId, setLoadingToastId] = useState<string | null>(null);
 
   const handleBrochureGeneration = async () => {
     setIsLoading(true);
@@ -48,32 +49,28 @@ export default function HomePage() {
       }
 
       if (isStreaming) {
-        toast.loading(
-          "The streaming backend endpoint is artificially throttled for demonstrating streaming on the frontend",
+        const id = toast.loading(
+          "Loading content... This might take a moment.",
+          { closeButton: true },
         );
-        // Get the readable stream from the response
+        setLoadingToastId(id as string);
+
         const stream = response.body;
         if (!stream) {
           throw new Error("Response body is null");
         }
 
-        // Create a reader from the stream
         const reader = stream.getReader();
         const decoder = new TextDecoder();
 
         try {
           while (true) {
             const { done, value } = await reader.read();
-
             if (done) {
               break;
             }
-
-            // Decode the chunk and update state immediately
             const text = decoder.decode(value);
             setContent((prev) => prev + text);
-
-            // Force browser to render
             await new Promise((resolve) => setTimeout(resolve, 1));
           }
         } finally {
@@ -84,8 +81,17 @@ export default function HomePage() {
         setContent(data.content);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "An error occurred");
+      toast.error(
+        error instanceof Error ? error.message : "An error occurred",
+        {
+          closeButton: true,
+        },
+      );
     } finally {
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+        setLoadingToastId(null);
+      }
       setIsLoading(false);
     }
   };
@@ -94,19 +100,24 @@ export default function HomePage() {
     e.preventDefault();
 
     if (!url.trim()) {
-      toast.error("Please enter a URL");
+      toast.error("Please enter a URL", { closeButton: true });
       return;
     }
 
     try {
       new URL(url);
     } catch {
-      toast.error("Please enter a valid URL starting with http:// or https://");
+      toast.error(
+        "Please enter a valid URL starting with http:// or https://",
+        {
+          closeButton: true,
+        },
+      );
       return;
     }
 
     if (!companyName.trim()) {
-      toast.error("Please enter a company name");
+      toast.error("Please enter a company name", { closeButton: true });
       return;
     }
 

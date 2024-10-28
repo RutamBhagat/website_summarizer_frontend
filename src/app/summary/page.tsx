@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
@@ -19,8 +20,11 @@ export default function SummarizerPage() {
 
   const {
     data: summaryData,
+    error,
     refetch,
     isLoading,
+    isSuccess,
+    isError,
   } = useQuery({
     queryKey: ["summary", url],
     queryFn: async () => {
@@ -29,7 +33,6 @@ export default function SummarizerPage() {
           "Please enter a valid URL starting with http:// or https://",
         );
       }
-
       const { data } = await apiClient.post<SummaryResponse>(
         endpoints.summarize,
         { url },
@@ -42,8 +45,41 @@ export default function SummarizerPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!url) {
+      toast.error("Please enter a URL", { duration: 5000, closeButton: true });
+      return;
+    }
+    try {
+      new URL(url);
+    } catch {
+      toast.error("Invalid URL. Please use http:// or https://", {
+        duration: 5000,
+        closeButton: true,
+      });
+      return;
+    }
+    toast.loading("Generating summary...", {
+      duration: Infinity,
+      closeButton: true,
+    });
     void refetch();
   };
+
+  useEffect(() => {
+    if (isSuccess) {
+      toast.dismiss();
+      toast.success("Summary generated successfully!", {
+        duration: 5000,
+        closeButton: true,
+      });
+    } else if (isError && error) {
+      toast.dismiss();
+      toast.error(error.message || "An error occurred", {
+        duration: 5000,
+        closeButton: true,
+      });
+    }
+  }, [isSuccess, isError, error]);
 
   return (
     <section className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-blue-900 to-teal-700 py-12 md:py-24 lg:py-32">
@@ -65,7 +101,7 @@ export default function SummarizerPage() {
                 placeholder="Enter website URL (e.g., https://example.com)"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || !url}
               />
               <Button
                 className="transform rounded-lg bg-gradient-to-r from-teal-400 to-cyan-500 font-semibold text-white transition-all hover:scale-105 hover:from-teal-500 hover:to-cyan-600 disabled:opacity-50"
@@ -91,7 +127,7 @@ export default function SummarizerPage() {
             </p>
           </div>
 
-          {summaryData && (
+          {isSuccess && summaryData && (
             <div className="mx-auto mt-8 w-full max-w-3xl space-y-6 rounded-lg bg-gray-800/80 p-6 text-left text-gray-200 shadow-lg">
               <h2 className="text-2xl font-bold text-white">
                 {summaryData.title}
@@ -104,6 +140,10 @@ export default function SummarizerPage() {
                 {new Date(summaryData.created_at).toLocaleDateString()}
               </p>
             </div>
+          )}
+
+          {isError && error && (
+            <div className="text-red-500">Error: {error.message}</div>
           )}
         </div>
       </div>
