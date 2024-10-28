@@ -45,40 +45,53 @@ export default function SummarizerPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!url) {
-      toast.dismiss();
       toast.error("Please enter a URL", { duration: 5000 });
       return;
     }
+
     try {
       new URL(url);
     } catch {
-      toast.dismiss();
       toast.error("Invalid URL. Please use http:// or https://", {
         duration: 5000,
       });
       return;
     }
-    toast.dismiss();
-    toast.loading("Generating summary...", {
+
+    // Use a regular toast instead of loading
+    toast("Starting summary generation...", {
       duration: 5000,
+      description: "Please wait while we process your request",
     });
+
     void refetch();
   };
 
   useEffect(() => {
-    if (isSuccess) {
-      toast.dismiss();
+    // Clear any existing toasts when status changes
+    toast.dismiss();
+
+    if (isLoading) {
+      // Optional: Show a progress toast
+      toast("Generating summary...", {
+        duration: 5000,
+        description: "This may take a moment",
+      });
+    } else if (isSuccess) {
       toast.success("Summary generated successfully!", {
         duration: 5000,
       });
     } else if (isError && error) {
-      toast.dismiss();
-      toast.error(error.message || "An error occurred", {
-        duration: 5000,
-      });
+      toast.error(
+        error instanceof Error ? error.message : "An error occurred",
+        {
+          duration: 5000,
+        },
+      );
     }
-  }, [isSuccess, isError, error]);
+  }, [isLoading, isSuccess, isError, error]);
 
   return (
     <section className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-blue-900 to-teal-700 py-12 md:py-24 lg:py-32">
