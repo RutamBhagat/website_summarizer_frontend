@@ -69,7 +69,7 @@ BrochureCraft is perfect for:
 
 ## Outcome
 
-BrochureCraft successfully provides a streamlined solution for generating marketing materials and content summaries. The application demonstrates significant efficiency improvements in content processing and presentation, making it valuable for marketing teams, sales professionals, and researchers who need quick access to well-formatted materials.```
+BrochureCraft successfully provides a streamlined solution for generating marketing materials and content summaries. The application demonstrates significant efficiency improvements in content processing and presentation, making it valuable for marketing teams, sales professionals, and researchers who need quick access to well-formatted materials.
 
 # Screenshots
 
@@ -77,9 +77,3 @@ BrochureCraft successfully provides a streamlined solution for generating market
 ![2](https://github.com/user-attachments/assets/b630996c-7d40-4b62-b3b5-61d8b3ed7344)
 ![3](https://github.com/user-attachments/assets/a1a05859-2b1d-4dec-a431-b847311c6d46)
 ![4](https://github.com/user-attachments/assets/bfc8b74d-d958-412b-8654-b925a015aa98)
-
-
-
-
-
-
