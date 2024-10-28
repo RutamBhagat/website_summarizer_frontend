@@ -113,7 +113,7 @@ export default function SummarizerPage() {
                 placeholder="Enter website URL (e.g., https://example.com)"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                disabled={isLoading || !url}
+                disabled={isLoading}
               />
               <Button
                 className="transform rounded-lg bg-gradient-to-r from-teal-400 to-cyan-500 font-semibold text-white transition-all hover:scale-105 hover:from-teal-500 hover:to-cyan-600 disabled:opacity-50"

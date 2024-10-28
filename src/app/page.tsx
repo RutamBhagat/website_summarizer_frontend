@@ -59,7 +59,6 @@ export default function HomePage() {
 
         const reader = stream.getReader();
         const decoder = new TextDecoder();
-        let progressCount = 0;
 
         try {
           while (true) {
@@ -69,16 +68,7 @@ export default function HomePage() {
             }
             const text = decoder.decode(value);
             setContent((prev) => prev + text);
-
-            // Update toast message periodically
-            progressCount++;
-            if (progressCount % 10 === 0) {
-              toast.loading("Still generating content...", {
-                id: toastId,
-                duration: 5000,
-              });
-            }
-
+            // Force browser to render
             await new Promise((resolve) => setTimeout(resolve, 1));
           }
           // Success toast when streaming is complete
